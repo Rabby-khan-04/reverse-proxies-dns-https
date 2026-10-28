@@ -1,0 +1,43 @@
+# Caddyfile for proxy-learn local development
+# Uses local certificates signed by a local CA
+# Subdomains app1.localhost and app2.localhost resolve to localhost via /etc/hosts
+# Caddy and the Node.js app are on the same Docker network, so Caddy can
+# reach the app via the service name "app"
+
+app1.localhost {
+  # Use local certificates instead of Let's Encrypt
+  # Certificate and key provided separately
+  tls /etc/caddy/certs/server-cert.pem /etc/caddy/certs/server-key.pem
+  
+  # Reverse proxy to the Node.js app via Docker network service discovery
+  # The "app" service name resolves to the Node.js container's IP on the Docker network
+  reverse_proxy app:3000
+  
+  # Security headers
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-origin-only"
+  }
+}
+
+app2.localhost {
+  # Use local certificates instead of Let's Encrypt
+  # Certificate and key provided separately
+  tls /etc/caddy/certs/server-cert.pem /etc/caddy/certs/server-key.pem
+  
+  # Reverse proxy to the Node.js app via Docker network service discovery
+  reverse_proxy app:3000
+  
+  # Custom headers for tenant identification
+  header {
+    X-Tenant-Id "{uri}"
+  }
+  
+  # Security headers
+  header {
+    X-Content-Type-Options "nosniff"
+    X-Frame-Options "DENY"
+    Referrer-Policy "strict-origin-when-origin-only"
+  }
+}

@@ -1,0 +1,58 @@
+services:
+  app:
+    build: ./app
+    container_name: proxy-learn-app
+    restart: unless-stopped
+    # The app runs on port 3000
+    ports:
+      - "3000:3000"
+    # Extra hosts to resolve subdomains via /etc/hosts
+    extra_hosts:
+      - "app1.localhost:127.0.0.1"
+      - "app2.localhost:127.0.0.1"
+      - "api.localhost:127.0.0.1"
+    networks:
+      - proxy-learn-network
+
+  caddy:
+    image: caddy:latest
+    container_name: proxy-learn-caddy
+    restart: unless-stopped
+    # Map Caddy's port 80/443 to host ports
+    ports:
+      - "80:80"
+      - "443:443"
+    # Mount local certs and Caddyfile config
+    volumes:
+      - ./certs:/etc/caddy/certs:ro
+      - ./Caddyfile:/etc/caddy/Caddyfile
+    # Add extra hosts for subdomain resolution within the container
+    extra_hosts:
+      - "app1.localhost:127.0.0.1"
+      - "app2.localhost:127.0.0.1"
+    networks:
+      - proxy-learn-network
+
+  nginx:
+    image: nginx:latest
+    container_name: proxy-learn-nginx
+    restart: unless-stopped
+    # Map Nginx's port 80/443 to different host ports to avoid conflict with Caddy
+    ports:
+      - "8080:80"
+      - "8443:443"
+    # Mount local certs and Nginx config
+    volumes:
+      - ./certs:/etc/nginx/certs:ro
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    # Add extra hosts for subdomain resolution within the container
+    extra_hosts:
+      - "app1.localhost:127.0.0.1"
+      - "app2.localhost:127.0.0.1"
+    networks:
+      - proxy-learn-network
+
+networks:
+  proxy-learn-network:
+    driver: bridge
